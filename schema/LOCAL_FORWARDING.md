@@ -166,15 +166,22 @@ where metadata gets backed up:
   secrets) to JSON and uploads it to `drive_backup_folder_id`. Each run is
   logged in `vault_backups`.
 
-This is a **design + schema** change in this repo (`warnetech-server` holds
-no application code — see README). Making it live requires two things this
-repo doesn't own:
+### Live Provisioned Resources (2026-08-02)
+
+The default "Personal Vault" has been provisioned with:
+
+| Resource | ID | Type | Status |
+|---|---|---|---|
+| Cloudflare KV namespace | `d02d4b37379145119df99831045c5d0b` | KV | **Live** — holds encrypted forwarding credentials |
+| Google Drive folder | `1PfrZcW75b41dzUiKeTf9lpdjt-tO6Wy9` | Folder | **Live** — destination for metadata backups |
+| Initial backup | `1N-rGGRKijbGdPBKwRFseo2XWS-FbA7ND` | JSON file | **Complete** — empty vault backup (0 rules) |
+
+Implementation still needs:
 1. Application code in `llm-chat-app-template` (the actual Worker) to call
    the Cloudflare KV/Secrets Store API and the Google Drive API per the
    contract in `local-forwarding-types.json`.
-2. Real credentials: a Cloudflare API token with KV/Secrets Store
-   permissions, and a Google Drive OAuth grant with write access to the
-   target folder — see `claude_code_auth` for how those are provisioned.
+2. Worker binding for the KV namespace (done in `wrangler.jsonc` with
+   `binding: "FORWARDING_VAULT"`).
 
 ## API Endpoints
 

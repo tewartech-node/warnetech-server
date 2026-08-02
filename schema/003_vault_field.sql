@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS vaults (
 );
 
 -- Seed the default vault seen in the client UI ("Personal Vault").
-INSERT OR IGNORE INTO vaults (name, owner, storage_backend)
-VALUES ('Personal Vault', 'default', 'cloudflare_kv');
+-- Created 2026-08-02 with real Cloudflare KV namespace and Google Drive backup folder.
+INSERT OR IGNORE INTO vaults (name, owner, storage_backend, cloudflare_namespace_id, drive_backup_enabled, drive_backup_folder_id)
+VALUES ('Personal Vault', 'default', 'cloudflare_kv', 'd02d4b37379145119df99831045c5d0b', 1, '1PfrZcW75b41dzUiKeTf9lpdjt-tO6Wy9');
 
 -- Link each forwarding config to the vault it belongs to.
 ALTER TABLE local_forwarding_configs ADD COLUMN vault_id INTEGER REFERENCES vaults(id);
