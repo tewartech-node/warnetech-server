@@ -1,0 +1,16 @@
+{
+  "name": "warnetech-server-vpc",
+  "type": "cloudflare-warp",
+  "nodeId": "457874e2-ac23-45d5-b2ab-4e36360e21a5",
+  "status": "configured",
+  "createdAt": "2026-08-02T11:30:00Z",
+  "config": {
+    "vpcName": "warnetech-server-vpc",
+    "connectorType": "warp-connector",
+    "ipForwarding": {
+      "ipv4": true,
+      "ipv6": true,
+      "acceptRa": 2
+    }
+  }
+}
