@@ -62,6 +62,7 @@ Stores the configuration for each forwarding tunnel.
 |--------|------|-------------|
 | id | INTEGER | Primary key |
 | config_name | TEXT | Unique configuration name |
+| vault_id | INTEGER | FK to `vaults` — which vault this rule belongs to |
 | local_port | INTEGER | Port on local machine (1024-65535) |
 | bind_address | TEXT | Bind address (default: 127.0.0.1) |
 | remote_host | TEXT | Remote hostname/IP |
@@ -71,6 +72,37 @@ Stores the configuration for each forwarding tunnel.
 | created_by | TEXT | Username of creator |
 | created_at | TEXT | Creation timestamp |
 | updated_at | TEXT | Last update timestamp |
+
+#### `vaults`
+Groups forwarding rules (matches the "Personal Vault" picker in the client UI) and defines where each group's secret material and backups live.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INTEGER | Primary key |
+| name | TEXT | Display name, e.g. "Personal Vault" |
+| owner | TEXT | Username/email of owner |
+| storage_backend | TEXT | `cloudflare_kv` or `cloudflare_secrets_store` |
+| cloudflare_namespace_id | TEXT | KV namespace / Secrets Store ID holding this vault's secrets |
+| cloudflare_account_id | TEXT | Cloudflare account the namespace belongs to |
+| drive_backup_enabled | INTEGER | Whether this vault is periodically exported to Google Drive |
+| drive_backup_folder_id | TEXT | Destination Google Drive folder ID |
+| created_at | TEXT | Creation timestamp |
+| updated_at | TEXT | Last update timestamp |
+
+#### `vault_backups`
+One row per export of a vault's rule metadata to Google Drive.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INTEGER | Primary key |
+| vault_id | INTEGER | FK to `vaults` |
+| drive_file_id | TEXT | Google Drive file ID of the exported JSON |
+| drive_file_url | TEXT | Shareable link to the file |
+| backup_type | TEXT | `full` or `incremental` |
+| record_count | INTEGER | Number of rules included |
+| status | TEXT | `completed` or `failed` |
+| error | TEXT | Error message if failed |
+| created_at | TEXT | When the backup ran |
 
 #### `forwarding_sessions`
 Tracks active forwarding sessions.
@@ -115,6 +147,34 @@ Performance metrics for active sessions.
 | latency_ms | INTEGER | Tunnel latency |
 | last_activity_at | TEXT | Last activity timestamp |
 | recorded_at | TEXT | Metrics recording time |
+
+## Vault: Cloudflare Storage + Google Drive Backup
+
+Each forwarding rule belongs to a **vault** (the "Personal Vault" selector in
+the client UI). A vault is a grouping boundary for where secrets live and
+where metadata gets backed up:
+
+- **Cloudflare (secret storage)** — a vault's `storage_backend` points at a
+  Cloudflare KV namespace (or Secrets Store) identified by
+  `cloudflare_namespace_id`. Decrypted credential material for that vault's
+  rules is read from/written to that namespace at tunnel-start time, never
+  persisted to D1. This reuses the same Cloudflare account the Worker itself
+  runs in — see `RESOURCE_INVENTORY.md` for account IDs.
+- **Google Drive (metadata backup)** — when `drive_backup_enabled` is set,
+  `POST /api/vaults/:id/backup` serializes the vault's forwarding-rule rows
+  (config metadata only — names, ports, hosts, status; **never** decrypted
+  secrets) to JSON and uploads it to `drive_backup_folder_id`. Each run is
+  logged in `vault_backups`.
+
+This is a **design + schema** change in this repo (`warnetech-server` holds
+no application code — see README). Making it live requires two things this
+repo doesn't own:
+1. Application code in `llm-chat-app-template` (the actual Worker) to call
+   the Cloudflare KV/Secrets Store API and the Google Drive API per the
+   contract in `local-forwarding-types.json`.
+2. Real credentials: a Cloudflare API token with KV/Secrets Store
+   permissions, and a Google Drive OAuth grant with write access to the
+   target folder — see `claude_code_auth` for how those are provisioned.
 
 ## API Endpoints
 
