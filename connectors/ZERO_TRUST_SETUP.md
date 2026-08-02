@@ -82,7 +82,7 @@ All configurations are defined in `zero-trust-policy.json` and should be applied
 
 ---
 
-## Phase 3: Application Access Policies
+## Phase 3: Identity & Access Management
 
 ### 3.1 Create Access Policy for warnetech-server Worker
 

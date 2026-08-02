@@ -77,7 +77,7 @@ Traffic Flow:
   → Add: Antivirus, Firewall, Disk Encryption checks
 ```
 
-### Phase 3: Application Access (30 minutes)
+### Phase 3: Identity & Access Management (30 minutes)
 ```
 ☐ Create Access policy for testllm.warnetwork.cloud
   → Access → Applications → Add application
