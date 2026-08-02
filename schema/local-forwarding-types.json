@@ -1,0 +1,345 @@
+{
+  "version": "1.0.0",
+  "title": "Local Forwarding API Data Types",
+  "description": "Type definitions for local port forwarding configuration and session management",
+  "timestamp": "2026-08-02",
+  "types": {
+    "LocalForwardingConfig": {
+      "description": "Configuration for a local forwarding tunnel",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique configuration ID"
+        },
+        "config_name": {
+          "type": "string",
+          "description": "Unique name for this forwarding config",
+          "example": "dev-db-tunnel"
+        },
+        "local_port": {
+          "type": "integer",
+          "description": "Port number on local (current) machine",
+          "minimum": 1024,
+          "maximum": 65535,
+          "example": 3306
+        },
+        "bind_address": {
+          "type": "string",
+          "description": "Address to bind the local port to",
+          "default": "127.0.0.1",
+          "example": "127.0.0.1"
+        },
+        "remote_host": {
+          "type": "string",
+          "description": "Hostname or IP of remote server",
+          "example": "database.internal.example.com"
+        },
+        "remote_port": {
+          "type": "integer",
+          "description": "Port on remote server to forward traffic to",
+          "minimum": 1,
+          "maximum": 65535,
+          "example": 3306
+        },
+        "tunnel_type": {
+          "type": "string",
+          "enum": ["ssh", "https", "cloudflare-tunnel"],
+          "default": "ssh",
+          "description": "Type of tunnel protocol to use"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["inactive", "active", "error"],
+          "default": "inactive",
+          "description": "Current status of the forwarding configuration"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "Username of creator"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when config was created"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last update"
+        }
+      },
+      "required": ["local_port", "remote_host", "remote_port"]
+    },
+    "CreateForwardingRequest": {
+      "description": "Request payload to create a new local forwarding config",
+      "type": "object",
+      "properties": {
+        "config_name": {
+          "type": "string",
+          "description": "Unique name for this configuration"
+        },
+        "local_port": {
+          "type": "integer",
+          "description": "Port number to open locally"
+        },
+        "bind_address": {
+          "type": "string",
+          "description": "Optional bind address (defaults to 127.0.0.1)"
+        },
+        "remote_host": {
+          "type": "string",
+          "description": "Remote host to forward to"
+        },
+        "remote_port": {
+          "type": "integer",
+          "description": "Remote port to forward to"
+        },
+        "tunnel_type": {
+          "type": "string",
+          "enum": ["ssh", "https", "cloudflare-tunnel"],
+          "description": "Tunnel protocol type"
+        }
+      },
+      "required": ["config_name", "local_port", "remote_host", "remote_port"]
+    },
+    "ForwardingSession": {
+      "description": "Active forwarding tunnel session",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Session ID"
+        },
+        "config_id": {
+          "type": "integer",
+          "description": "Reference to config"
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Unique session identifier"
+        },
+        "tunnel_host": {
+          "type": "string",
+          "description": "Host where tunnel is established"
+        },
+        "tunnel_port": {
+          "type": "integer",
+          "description": "Port where tunnel is listening"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["establishing", "active", "closing", "closed", "error"],
+          "description": "Current session status"
+        },
+        "established_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When tunnel was successfully established"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When tunnel was closed"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ForwardingMetrics": {
+      "description": "Performance metrics for an active forwarding session",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "session_id": {
+          "type": "integer"
+        },
+        "bytes_sent": {
+          "type": "integer",
+          "description": "Total bytes sent through tunnel"
+        },
+        "bytes_received": {
+          "type": "integer",
+          "description": "Total bytes received through tunnel"
+        },
+        "active_connections": {
+          "type": "integer",
+          "description": "Current active connections"
+        },
+        "latency_ms": {
+          "type": "integer",
+          "description": "Tunnel latency in milliseconds"
+        },
+        "last_activity_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last activity"
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When metrics were recorded"
+        }
+      }
+    },
+    "ForwardingAuditLog": {
+      "description": "Audit log entry for forwarding activities",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "config_id": {
+          "type": "integer"
+        },
+        "session_id": {
+          "type": "integer"
+        },
+        "event_type": {
+          "type": "string",
+          "enum": ["config_created", "config_updated", "config_deleted", "session_started", "session_closed", "session_error"],
+          "description": "Type of event"
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details or error messages"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "user": {
+          "type": "string",
+          "description": "User who triggered the event"
+        }
+      }
+    }
+  },
+  "endpoints": {
+    "POST /api/forwarding": {
+      "description": "Create a new local forwarding configuration",
+      "request": {
+        "$ref": "#/types/CreateForwardingRequest"
+      },
+      "response": {
+        "$ref": "#/types/LocalForwardingConfig"
+      }
+    },
+    "GET /api/forwarding": {
+      "description": "List all forwarding configurations",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/types/LocalForwardingConfig"
+        }
+      }
+    },
+    "GET /api/forwarding/:id": {
+      "description": "Get specific forwarding configuration",
+      "response": {
+        "$ref": "#/types/LocalForwardingConfig"
+      }
+    },
+    "PUT /api/forwarding/:id": {
+      "description": "Update forwarding configuration",
+      "request": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive"]
+          },
+          "bind_address": {
+            "type": "string"
+          }
+        }
+      },
+      "response": {
+        "$ref": "#/types/LocalForwardingConfig"
+      }
+    },
+    "DELETE /api/forwarding/:id": {
+      "description": "Delete forwarding configuration",
+      "response": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "POST /api/forwarding/:id/start": {
+      "description": "Start a forwarding session",
+      "response": {
+        "$ref": "#/types/ForwardingSession"
+      }
+    },
+    "POST /api/forwarding/:id/stop": {
+      "description": "Stop an active forwarding session",
+      "response": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "GET /api/forwarding/:id/metrics": {
+      "description": "Get metrics for an active session",
+      "response": {
+        "$ref": "#/types/ForwardingMetrics"
+      }
+    },
+    "GET /api/forwarding/:id/audit": {
+      "description": "Get audit log for a configuration",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/types/ForwardingAuditLog"
+        }
+      }
+    }
+  },
+  "examples": {
+    "create_request": {
+      "config_name": "staging-database",
+      "local_port": 3306,
+      "bind_address": "127.0.0.1",
+      "remote_host": "db-staging.internal.aws.example.com",
+      "remote_port": 3306,
+      "tunnel_type": "ssh"
+    },
+    "created_config": {
+      "id": 1,
+      "config_name": "staging-database",
+      "local_port": 3306,
+      "bind_address": "127.0.0.1",
+      "remote_host": "db-staging.internal.aws.example.com",
+      "remote_port": 3306,
+      "tunnel_type": "ssh",
+      "status": "inactive",
+      "created_by": "user@example.com",
+      "created_at": "2026-08-02T14:30:00Z",
+      "updated_at": "2026-08-02T14:30:00Z"
+    },
+    "active_session": {
+      "id": 1,
+      "config_id": 1,
+      "session_id": "sess_abc123def456",
+      "tunnel_host": "localhost",
+      "tunnel_port": 3306,
+      "status": "active",
+      "established_at": "2026-08-02T14:30:45Z",
+      "created_at": "2026-08-02T14:30:30Z"
+    }
+  }
+}
