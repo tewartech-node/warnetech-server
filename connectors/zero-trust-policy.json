@@ -1,0 +1,260 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "warnetech-server-zero-trust",
+    "description": "Complete Zero Trust configuration for warnetech-server VPC and Worker",
+    "createdAt": "2026-08-02T12:00:00Z",
+    "vpcName": "warnetech-server-vpc",
+    "connectorId": "457874e2-ac23-45d5-b2ab-4e36360e21a5"
+  },
+  "access_policies": {
+    "application_access": {
+      "testllm.warnetwork.cloud": {
+        "name": "warnetech-server-worker",
+        "description": "Cloudflare Worker endpoint for warnetech-server AI system",
+        "allow_rules": [
+          {
+            "type": "authenticated_users",
+            "require": ["email_domain:warnetwork.cloud"],
+            "policy": "require_cloudflare_login"
+          },
+          {
+            "type": "service_tokens",
+            "allow": ["warnetech-connector-token"],
+            "policy": "allow_with_mfa"
+          }
+        ],
+        "deny_rules": [
+          {
+            "type": "geo_blocking",
+            "deny_countries": []
+          },
+          {
+            "type": "rate_limit",
+            "requests_per_minute": 100,
+            "burst_size": 10
+          }
+        ],
+        "mtls": {
+          "enabled": true,
+          "client_certificate_required": false,
+          "ca_certificate_chain": []
+        }
+      }
+    },
+    "connector_access": {
+      "warnetech-server-vpc": {
+        "name": "VPC MESH Connector Access",
+        "description": "Zero Trust policies for Warp connector traffic",
+        "routing_rules": [
+          {
+            "destination": "10.64.0.0/12",
+            "policy": "allow_authenticated_devices",
+            "require_mfa": true,
+            "session_duration_hours": 8
+          },
+          {
+            "destination": "100.64.0.0/10",
+            "policy": "allow_tunnel_only",
+            "require_device_posture": ["antivirus", "firewall"]
+          },
+          {
+            "destination": "warnetwork.workers.dev",
+            "policy": "allow_connector_to_worker",
+            "allow_bidirectional": true
+          }
+        ],
+        "split_tunnel": {
+          "enabled": true,
+          "exclude_cidrs": [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16"
+          ],
+          "include_cidrs": [
+            "100.64.0.0/10",
+            "100.80.0.0/16"
+          ]
+        }
+      }
+    }
+  },
+  "firewall_rules": {
+    "worker_endpoint": {
+      "name": "warnetech-server-worker-firewall",
+      "rules": [
+        {
+          "action": "challenge",
+          "expression": "(cf.bot_management.score < 30)",
+          "priority": 1
+        },
+        {
+          "action": "allow",
+          "expression": "(cf.threat_score == 0 and cf.verified_bot_category == \"search engine crawler\")",
+          "priority": 2
+        },
+        {
+          "action": "block",
+          "expression": "(cf.threat_score > 70)",
+          "priority": 3
+        },
+        {
+          "action": "log",
+          "expression": "(cf.bot_management.score < 50)",
+          "priority": 4
+        },
+        {
+          "action": "allow",
+          "expression": "true",
+          "priority": 100
+        }
+      ]
+    },
+    "vpc_mesh": {
+      "name": "warnetech-vpc-mesh-firewall",
+      "rules": [
+        {
+          "action": "allow",
+          "source": "10.64.0.0/12",
+          "destination": "100.64.0.0/10",
+          "protocol": "tcp",
+          "ports": [443, 80]
+        },
+        {
+          "action": "allow",
+          "source": "100.80.0.0/16",
+          "destination": "100.64.0.0/10",
+          "protocol": "tcp",
+          "ports": [5432, 3306, 6379]
+        },
+        {
+          "action": "log",
+          "source": "any",
+          "destination": "any",
+          "protocol": "any"
+        },
+        {
+          "action": "block",
+          "source": "any",
+          "destination": "any",
+          "protocol": "any"
+        }
+      ]
+    }
+  },
+  "device_posture": {
+    "enabled": true,
+    "requirements": {
+      "member_devices": {
+        "antivirus": "required",
+        "firewall": "required",
+        "os": {
+          "macos": "13.0+",
+          "windows": "10+",
+          "linux": "any"
+        }
+      },
+      "service_tokens": {
+        "antivirus": "optional",
+        "firewall": "optional"
+      }
+    },
+    "remediation": {
+      "non_compliant_action": "quarantine",
+      "allow_user_override": false
+    }
+  },
+  "gateway_logging": {
+    "enabled": true,
+    "log_type": "http",
+    "destinations": [
+      {
+        "type": "cloudflare_logpush",
+        "dataset": "http_requests"
+      },
+      {
+        "type": "cloudflare_logpush",
+        "dataset": "gateway_http"
+      },
+      {
+        "type": "cloudflare_logpush",
+        "dataset": "gateway_dns"
+      }
+    ],
+    "filters": {
+      "include_logs": ["blocked", "allowed", "challenged"],
+      "min_risk_score": 0
+    }
+  },
+  "authentication": {
+    "mfa_enforcement": "required",
+    "acceptable_authenticators": [
+      "totp",
+      "hardware_token",
+      "face_unlock",
+      "fido2"
+    ],
+    "session": {
+      "timeout_minutes": 480,
+      "idle_timeout_minutes": 60,
+      "require_reauthentication_for": ["sensitive_operations"]
+    }
+  },
+  "connectors": {
+    "warp": {
+      "name": "warnetech-server-vpc",
+      "mode": "automatic",
+      "protocol": "ipv4",
+      "udp_support": true,
+      "local_domain_fallback": "warnetwork.cloud",
+      "split_dns": {
+        "enabled": true,
+        "domains": [
+          {
+            "domain": "*.warnetech.cloud",
+            "upstream": "1.1.1.1"
+          },
+          {
+            "domain": "*.warnetwork.cloud",
+            "upstream": "1.1.1.1"
+          }
+        ]
+      }
+    }
+  },
+  "traffic_verification": {
+    "test_endpoints": [
+      {
+        "name": "Worker Health Check",
+        "url": "https://testllm.warnetwork.cloud/health",
+        "method": "GET",
+        "expected_status": 200,
+        "interval_seconds": 60
+      },
+      {
+        "name": "VPC Mesh Reachability",
+        "target": "100.64.0.0/10",
+        "protocol": "icmp",
+        "interval_seconds": 300
+      },
+      {
+        "name": "Connector Status",
+        "url": "https://testllm.warnetwork.cloud/api/connectors/status",
+        "method": "GET",
+        "expected_status": 200,
+        "interval_seconds": 120
+      }
+    ]
+  },
+  "compliance": {
+    "standards": ["SOC2", "ISO27001"],
+    "audit_logging": {
+      "enabled": true,
+      "retention_days": 90
+    },
+    "encryption": {
+      "in_transit": "TLS 1.3",
+      "at_rest": "AES-256-GCM"
+    }
+  }
+}
