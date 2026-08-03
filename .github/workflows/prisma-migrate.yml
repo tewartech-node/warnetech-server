@@ -1,0 +1,45 @@
+name: Prisma Postgres — migrate & seed
+
+# Manual trigger only: this touches the live database, so it should not
+# fire automatically on every push. Run it from the Actions tab when ready.
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: "Also run `prisma db seed` after migrating"
+        type: boolean
+        default: true
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed database
+        if: ${{ inputs.run_seed }}
+        run: npx prisma db seed
+
+      - name: Verify connection
+        run: npx tsx scripts/verify-prisma.ts
