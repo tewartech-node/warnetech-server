@@ -1,0 +1,103 @@
+# warnetech-server Zero Trust Terraform Configuration
+# Copy this file to terraform.tfvars and update with your values
+
+# ============================================================================
+# Cloudflare Account & Zone
+# ============================================================================
+# Get these from: https://dash.cloudflare.com/
+
+cloudflare_account_id = "YOUR-ACCOUNT-ID"
+cloudflare_zone_id    = "YOUR-ZONE-ID-FOR-WARNETWORK.CLOUD"
+
+# API token (set via environment: export CLOUDFLARE_API_TOKEN="...")
+# Do NOT put token here - use environment variable
+
+# ============================================================================
+# Environment
+# ============================================================================
+environment = "production"  # production, staging, or development
+
+# ============================================================================
+# Worker Configuration
+# ============================================================================
+worker_domain = "testllm.warnetwork.cloud"
+
+# ============================================================================
+# Phase 2: Authentication & Device Posture
+# ============================================================================
+authenticated_email_domains = ["warnetwork.cloud", "example.com"]
+require_mfa                  = true
+session_duration_minutes     = 480  # 8 hours
+
+# ============================================================================
+# Phase 4: Firewall & Gateway Rules
+# ============================================================================
+bot_management_threshold           = 30  # 0-100, lower = more aggressive
+threat_score_block_threshold       = 70  # 0-100, higher = more selective
+enable_rate_limiting               = true
+rate_limit_requests_per_minute     = 100
+rate_limit_burst_size              = 10
+
+# ============================================================================
+# Phase 6: Logging & Audit Trail
+# ============================================================================
+logpush_destination_type = "cloudflare_logpush"  # cloudflare_logpush, s3, gcs, datadog, splunk
+log_retention_days       = 90
+
+# Logpush destination config (example for S3)
+# logpush_destination_config = {
+#   bucket = "warnetech-logs"
+# }
+
+# ============================================================================
+# Zero Trust Gateway
+# ============================================================================
+gateway_proxy_enabled = true
+split_tunnel_mode     = "exclude"  # include or exclude
+
+# CIDRs to include in split tunnel (route through Warp)
+split_tunnel_includes = [
+  "10.64.0.0/12",
+  "100.64.0.0/10",
+  "100.80.0.0/16"
+]
+
+# CIDRs to exclude (bypass Warp)
+split_tunnel_excludes = [
+  "10.0.0.0/8",
+  "172.16.0.0/12",
+  "192.168.0.0/16"
+]
+
+# Split DNS configuration
+split_dns_domains = {
+  "*.warnetech.cloud" = {
+    upstream = "1.1.1.1"
+  }
+  "*.warnetwork.cloud" = {
+    upstream = "1.1.1.1"
+  }
+}
+
+# ============================================================================
+# VPC Connector
+# ============================================================================
+vpc_connector_name    = "warnetech-server-vpc"
+vpc_connector_node_id = "457874e2-ac23-45d5-b2ab-4e36360e21a5"
+
+# ============================================================================
+# Backup Configuration
+# ============================================================================
+backup_enabled        = true
+backup_account_email  = "warnet.dev01@gmail.com"
+backup_retention_days = 30
+
+# ============================================================================
+# Tags
+# ============================================================================
+tags = {
+  Project     = "warnetech-server"
+  Environment = "production"
+  ManagedBy   = "Terraform"
+  CostCenter  = "engineering"
+}
