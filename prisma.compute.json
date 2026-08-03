@@ -1,0 +1,13 @@
+{
+  "region": "ap-southeast-1",
+  "app": {
+    "name": "warnetech-server",
+    "framework": "bun",
+    "entry": "*",
+    "httpPort": 3000,
+    "build": {
+      "command": null,
+      "outputDirectory": "."
+    }
+  }
+}
